@@ -138,6 +138,20 @@ public class ConfiguracionMercancias {
     }
 
     /**
+     * Registra una cantidad inicial de cada producto del catálogo en el almacén.
+     * Se utiliza al inicio del sistema para que los pedidos automáticos tengan
+     * stock disponible y no queden bloqueados por falta de inventario.
+     */
+    public static void cargarStockInicial() {
+        Almacen almacen = Almacen.getInstancia();
+        int cantidadInicial = 100; // 100 unidades de cada producto
+        for (Producto producto : CATALOGO.values()) {
+            almacen.registrarLlegadaMercaderia(producto.codigo(), cantidadInicial);
+        }
+        System.out.println("Almacén: Stock inicial cargado (" + CATALOGO.size() + " productos x " + cantidadInicial + " unidades).");
+    }
+
+    /**
      * Imprime en consola la información de configuración de mercancías y catálogo.
      * Se utiliza al inicio del sistema para verificar la configuración.
      */

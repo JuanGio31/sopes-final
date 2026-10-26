@@ -1,5 +1,8 @@
 package org.giov.recursos;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
@@ -18,12 +21,16 @@ public class GestorRecursos {
     /** Almacena los semáforos asociados a cada tipo de recurso. */
     private Map<TipoRecurso, Semaphore> semaforos;
 
-    /** Rastrea qué operación tiene asignado cada recurso en un momento dado. */
-    private Map<TipoRecurso, String> registroUso;
+    /** Rastrea qué operaciones tienen asignado cada recurso en un momento dado. */
+    private Map<TipoRecurso, List<String>> registroUso;
 
     private GestorRecursos() {
         semaforos = new ConcurrentHashMap<>();
         registroUso = new ConcurrentHashMap<>();
+        // Se inicializa cada tipo de recurso con una lista vacía de usuarios
+        for (TipoRecurso tipo : TipoRecurso.values()) {
+            registroUso.put(tipo, Collections.synchronizedList(new ArrayList<>()));
+        }
 
         // Se activa la política de equidad (fairness) tipo FIFO para evitar inanición (starvation)
         semaforos.put(TipoRecurso.ESTACION_EMPAQUE, new Semaphore(6, true));
@@ -62,7 +69,10 @@ public class GestorRecursos {
             // El hilo se bloquea aquí si no hay recursos disponibles
             semaforo.acquire();
             // Se registra la operación que utiliza el recurso
-            registroUso.put(tipo, idOperacion);
+            List<String> usuarios = registroUso.get(tipo);
+            if (usuarios != null) {
+                usuarios.add(idOperacion);
+            }
             System.out.println("Operación " + idOperacion + " adquirió: " + tipo);
         }
     }
@@ -77,7 +87,10 @@ public class GestorRecursos {
     public void liberarRecurso(TipoRecurso tipo, String idOperacion) {
         Semaphore semaforo = semaforos.get(tipo);
         if (semaforo != null) {
-            registroUso.remove(tipo);
+            List<String> usuarios = registroUso.get(tipo);
+            if (usuarios != null) {
+                usuarios.remove(idOperacion);
+            }
             semaforo.release();
             System.out.println("Operación " + idOperacion + " liberó: " + tipo);
         }
@@ -95,11 +108,48 @@ public class GestorRecursos {
 
     /**
      * Devuelve el identificador de la operación que actualmente utiliza un recurso.
+     * Si hay múltiples operaciones, retorna los IDs separados por coma.
      *
      * @param tipo tipo de recurso a consultar
-     * @return identificador de la operación actual, o "Ninguno" si el recurso está libre
+     * @return identificador(es) de la(s) operación(es) actual(es), o "Ninguno" si el recurso está libre
      */
     public String getUsuarioActual(TipoRecurso tipo) {
-        return registroUso.getOrDefault(tipo, "Ninguno");
+        List<String> usuarios = registroUso.get(tipo);
+        if (usuarios == null || usuarios.isEmpty()) {
+            return "Ninguno";
+        }
+        return String.join(", ", usuarios);
+    }
+
+    /**
+     * Devuelve la lista de todas las operaciones que actualmente utilizan un recurso.
+     *
+     * @param tipo tipo de recurso a consultar
+     * @return lista de identificadores de las operaciones activas, vacía si el recurso está libre
+     */
+    public List<String> getUsuariosActivos(TipoRecurso tipo) {
+        List<String> usuarios = registroUso.get(tipo);
+        if (usuarios == null) {
+            return Collections.emptyList();
+        }
+        return new ArrayList<>(usuarios);
+    }
+
+    /**
+     * Devuelve la cantidad total de permisos para un tipo de recurso.
+     * Se calcula sumando los permisos disponibles con la cantidad de usuarios activos.
+     *
+     * @param tipo tipo de recurso a consultar
+     * @return número total de permisos del recurso
+     */
+    public int getRecursosTotales(TipoRecurso tipo) {
+        Semaphore semaforo = semaforos.get(tipo);
+        if (semaforo == null) {
+            return 0;
+        }
+        // Los permisos totales son los disponibles más los en uso
+        List<String> usuarios = registroUso.get(tipo);
+        int enUso = (usuarios != null) ? usuarios.size() : 0;
+        return semaforo.availablePermits() + enUso;
     }
 }

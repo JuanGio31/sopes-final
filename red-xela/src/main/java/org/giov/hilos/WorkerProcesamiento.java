@@ -4,8 +4,16 @@ package org.giov.hilos;
 import org.giov.modelo.Almacen;
 import org.giov.modelo.EstadoPedido;
 import org.giov.modelo.Pedido;
+import org.giov.modelo.Producto;
+import org.giov.modelo.TipoMercancia;
 import org.giov.recursos.GestorRecursos;
 import org.giov.recursos.TipoRecurso;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Representa un hilo trabajador que procesa pedidos de forma concurrente.
@@ -49,30 +57,39 @@ public class WorkerProcesamiento extends Thread {
 
                     try {
                         pedidoActual.setEstadoActual(EstadoPedido.PROCESANDO);
+                        sistema.registrarEnProceso(pedidoActual);
                         System.out.println("Worker " + idWorker + ": Iniciando " + pedidoActual.getIdPedido());
 
-                        // 2. Solicitud de recursos (AQUÍ DEBE USAR LOS RECURSOS QUE DICTE EL TIPO DE MERCANCÍA)
-                        gestor.solicitarRecurso(TipoRecurso.ESTACION_EMPAQUE, pedidoActual.getIdPedido());
-                        gestor.solicitarRecurso(TipoRecurso.ENCARGADO_BODEGA, pedidoActual.getIdPedido());
+                        // 2. Se determinan los recursos necesarios según el tipo de mercancía de cada producto
+                        List<TipoRecurso> recursosNecesarios = obtenerRecursosNecesarios(pedidoActual.getProductosSolicitados());
 
-                        // 3. Simulación del trabajo basado en la cantidad de unidades[cite: 4]
+                        // 3. Solicitud de todos los recursos necesarios en orden
+                        for (TipoRecurso recurso : recursosNecesarios) {
+                            gestor.solicitarRecurso(recurso, pedidoActual.getIdPedido());
+                        }
+
+                        // 4. Simulación del trabajo basado en la cantidad de unidades
                         int tiempoProcesamiento = pedidoActual.getCantidadTotalArticulos() * 100;
                         if (tiempoProcesamiento == 0) tiempoProcesamiento = 1500;
 
                         Thread.sleep(tiempoProcesamiento);
 
-                        // 4. Descontar el stock real del almacén ahora que se empacó
+                        // 5. Descontar el stock real del almacén ahora que se empacó
                         almacen.descontarStock(pedidoActual.getProductosSolicitados());
 
-                        // 5. Liberación de recursos
-                        gestor.liberarRecurso(TipoRecurso.ENCARGADO_BODEGA, pedidoActual.getIdPedido());
-                        gestor.liberarRecurso(TipoRecurso.ESTACION_EMPAQUE, pedidoActual.getIdPedido());
+                        // 6. Liberación de todos los recursos en orden inverso
+                        for (int i = recursosNecesarios.size() - 1; i >= 0; i--) {
+                            gestor.liberarRecurso(recursosNecesarios.get(i), pedidoActual.getIdPedido());
+                        }
 
                         pedidoActual.setEstadoActual(EstadoPedido.COMPLETADO);
+                        sistema.finalizarProceso(pedidoActual);
+                        sistema.incrementarCompletados();
                         System.out.println("Worker " + idWorker + ": Finalizó " + pedidoActual.getIdPedido());
 
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
+                        sistema.finalizarProceso(pedidoActual);
                         System.out.println("Worker " + idWorker + " interrumpido.");
                     }
 
@@ -89,5 +106,39 @@ public class WorkerProcesamiento extends Thread {
                 }
             }
         }
+    }
+
+    /**
+     * Determina los recursos únicos necesarios para procesar todos los productos
+     * de un pedido, basándose en el tipo de mercancía de cada producto.
+     *
+     * <p>Si un pedido contiene productos de diferentes tipos, se unifican los recursos
+     * requeridos por todos ellos, eliminando duplicados.</p>
+     *
+     * @param productos mapa de productos solicitados con sus cantidades
+     * @return lista ordenada de recursos necesarios (sin duplicados)
+     */
+    private List<TipoRecurso> obtenerRecursosNecesarios(Map<Producto, Integer> productos) {
+        Set<TipoRecurso> recursosSet = new HashSet<>();
+
+        for (Producto producto : productos.keySet()) {
+            TipoMercancia tipoMercancia = producto.tipoMercancia();
+            if (tipoMercancia != null) {
+                for (String recursoNombre : tipoMercancia.getRecursosRequeridos()) {
+                    try {
+                        TipoRecurso tipo = TipoRecurso.valueOf(recursoNombre);
+                        recursosSet.add(tipo);
+                    } catch (IllegalArgumentException e) {
+                        // Se ignora el recurso si no existe en el enum
+                    }
+                }
+            }
+        }
+
+        // Se retorna una lista ordenada para que la adquisición sea determinista
+        // y reduzca la probabilidad de deadlocks por orden inverso
+        List<TipoRecurso> recursos = new ArrayList<>(recursosSet);
+        recursos.sort(null); // Orden alfabético por nombre del enum
+        return recursos;
     }
 }

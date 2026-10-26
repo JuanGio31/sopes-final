@@ -14,4 +14,63 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
+    <dependencies>
+        <dependency>
+            <groupId>com.formdev</groupId>
+            <artifactId>flatlaf</artifactId>
+            <version>3.5.4</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!--
+                maven-shade-plugin genera un único JAR "fat" ejecutable
+                que incluye todas las dependencias (FlatLaf).
+                Reemplaza el JAR original, por lo que no se crean dos archivos.
+                Se ejecuta en la fase package: mvn package
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.6.0</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <!-- Clase principal que contiene el método main() -->
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>org.giov.Main</mainClass>
+                                </transformer>
+                                <!--
+                                    FlatLaf usa META-INF/services para el ServiceLoader.
+                                    Este transformer fusiona los archivos de servicios
+                                    en lugar de sobrescribirlos.
+                                -->
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                            </transformers>
+                            <!-- Evita crear el JAR original sin dependencias -->
+                            <shadedArtifactAttached>false</shadedArtifactAttached>
+                            <!-- No incluye archivos META-INF de firmas (causan errores de seguridad) -->
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
 </project>

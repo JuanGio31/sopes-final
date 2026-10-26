@@ -8,6 +8,7 @@ import org.giov.planificacion.EstrategiaPlanificacion;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -31,6 +32,15 @@ public class SistemaPedidos {
      * Contador atómico centralizado para garantizar IDs únicos en toda la aplicación.
      */
     private final AtomicInteger contadorIdGeneral = new AtomicInteger(1);
+
+    /** Contador de pedidos que han completado su procesamiento exitosamente. */
+    private final AtomicInteger pedidosCompletados = new AtomicInteger(0);
+
+    /** Lista de pedidos actualmente siendo procesados por los workers, segura para concurrencia. */
+    private final List<Pedido> pedidosProcesando = new CopyOnWriteArrayList<>();
+
+    /** Marca que indica si el sistema ha sido inicializado. */
+    private volatile boolean inicializado = false;
 
     /**
      * Construye el sistema de pedidos con una estrategia de planificación inicial.
@@ -138,5 +148,85 @@ public class SistemaPedidos {
                 System.out.println("Pedido " + p.getIdPedido() + " reevaluado y devuelto a la cola principal.");
             }
         }
+    }
+
+    /**
+     * Incrementa el contador de pedidos completados.
+     * Se invoca cuando un worker finaliza el procesamiento de un pedido.
+     */
+    public void incrementarCompletados() {
+        pedidosCompletados.incrementAndGet();
+    }
+
+    /**
+     * Registra un pedido como actualmente en proceso por un worker.
+     * Se invoca al inicio del procesamiento de cada pedido.
+     *
+     * @param pedido pedido que comienza a procesarse
+     */
+    public void registrarEnProceso(Pedido pedido) {
+        pedidosProcesando.add(pedido);
+    }
+
+    /**
+     * Elimina un pedido de la lista de pedidos en proceso.
+     * Se invoca cuando un worker finaliza o cancela el procesamiento.
+     *
+     * @param pedido pedido que deja de procesarse
+     */
+    public void finalizarProceso(Pedido pedido) {
+        pedidosProcesando.remove(pedido);
+    }
+
+    /**
+     * Devuelve el número total de pedidos completados exitosamente.
+     *
+     * @return número de pedidos completados
+     */
+    public int getPedidosCompletados() {
+        return pedidosCompletados.get();
+    }
+
+    /**
+     * Devuelve una copia de la lista de pedidos actualmente en proceso.
+     *
+     * @return lista de pedidos siendo procesados por los workers
+     */
+    public List<Pedido> getPedidosProcesando() {
+        return new ArrayList<>(pedidosProcesando);
+    }
+
+    /**
+     * Devuelve una copia de la lista de pedidos bloqueados por falta de inventario.
+     *
+     * @return lista de pedidos esperando stock
+     */
+    public List<Pedido> getPedidosBloqueados() {
+        return new ArrayList<>(pendientesInventario);
+    }
+
+    /**
+     * Devuelve la estrategia de planificación actualmente activa.
+     *
+     * @return la estrategia de planificación en uso
+     */
+    public synchronized EstrategiaPlanificacion getEstrategiaActual() {
+        return estrategiaActual;
+    }
+
+    /**
+     * Marca el sistema como inicializado, permitiendo que la GUI acceda a los datos.
+     */
+    public void marcarInicializado() {
+        this.inicializado = true;
+    }
+
+    /**
+     * Verifica si el sistema ha sido inicializado.
+     *
+     * @return {@code true} si el sistema está listo para ser consultado por la GUI
+     */
+    public boolean isInicializado() {
+        return inicializado;
     }
 }

@@ -198,4 +198,31 @@ public class Almacen {
             espacioOcupado -= cantidadNecesaria; // Se libera espacio físico
         }
     }
+
+    /**
+     * Devuelve el espacio actualmente ocupado en el almacén.
+     *
+     * @return número de unidades ocupadas
+     */
+    public synchronized int getEspacioOcupado() {
+        return espacioOcupado;
+    }
+
+    /**
+     * Devuelve la capacidad máxima del almacén.
+     *
+     * @return capacidad máxima en unidades
+     */
+    public int getCapacidadMaxima() {
+        return CAPACIDAD_MAXIMA;
+    }
+
+    /**
+     * Devuelve un mapa con las existencias actuales por producto.
+     *
+     * @return mapa inmutable de código de producto a cantidad disponible
+     */
+    public synchronized Map<String, Integer> getExistenciasPorProducto() {
+        return new ConcurrentHashMap<>(existenciasPorProducto);
+    }
 }
