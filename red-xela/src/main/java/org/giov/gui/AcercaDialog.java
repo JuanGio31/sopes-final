@@ -3,17 +3,9 @@ package org.giov.gui;
 import javax.swing.*;
 import java.awt.*;
 
-/**
- * Diálogo "Acerca de" que muestra información general del proyecto REDXela.
- * Se abre desde el menú Ayuda > Acerca de REDXela.
- */
+/** Diálogo con información del proyecto. */
 public class AcercaDialog extends JDialog {
 
-    /**
-     * Construye el diálogo con la información del proyecto.
-     *
-     * @param parent ventana padre
-     */
     public AcercaDialog(JFrame parent) {
         super(parent, "Acerca de REDXela", false);
         setSize(450, 320);
@@ -23,7 +15,6 @@ public class AcercaDialog extends JDialog {
         JPanel panel = new JPanel(new BorderLayout(12, 12));
         panel.setBorder(BorderFactory.createEmptyBorder(16, 16, 16, 16));
 
-        // ── Encabezado con título ──
         JPanel panelHeader = new JPanel(new BorderLayout(8, 4));
         JLabel lblTitulo = new JLabel("REDXela - Centro de Distribución");
         lblTitulo.setFont(new Font("SansSerif", Font.BOLD, 18));
@@ -36,7 +27,6 @@ public class AcercaDialog extends JDialog {
         panelHeader.add(lblVersion, BorderLayout.SOUTH);
         panel.add(panelHeader, BorderLayout.NORTH);
 
-        // ── Descripción ──
         JTextArea txtDescripcion = new JTextArea(
                 "Sistema de simulación de un centro de distribución que demuestra\n" +
                 "conceptos de programación concurrente en Java:\n\n" +
@@ -57,7 +47,6 @@ public class AcercaDialog extends JDialog {
         txtDescripcion.setOpaque(true);
         panel.add(txtDescripcion, BorderLayout.CENTER);
 
-        // ── Botón cerrar ──
         JPanel panelBoton = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton btnCerrar = new JButton("Cerrar");
         btnCerrar.addActionListener(e -> dispose());

@@ -3,17 +3,9 @@ package org.giov.gui;
 import javax.swing.*;
 import java.awt.*;
 
-/**
- * Diálogo "Modo de uso" que explica cómo interpretar y utilizar la interfaz
- * del sistema REDXela. Se abre desde el menú Ayuda > Modo de uso.
- */
+/** Diálogo con instrucciones de uso del sistema. */
 public class AyudaDialog extends JDialog {
 
-    /**
-     * Construye el diálogo con las instrucciones de uso del sistema.
-     *
-     * @param parent ventana padre
-     */
     public AyudaDialog(JFrame parent) {
         super(parent, "Modo de uso", false);
         setSize(550, 500);
@@ -22,7 +14,6 @@ public class AyudaDialog extends JDialog {
         JPanel panel = new JPanel(new BorderLayout(12, 12));
         panel.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
 
-        // ── Contenido con formato HTML ──
         JEditorPane txtAyuda = new JEditorPane("text/html",
                 "<html>" +
                 "<style>" +
@@ -81,7 +72,6 @@ public class AyudaDialog extends JDialog {
         scrollAyuda.getViewport().setOpaque(false);
         panel.add(scrollAyuda, BorderLayout.CENTER);
 
-        // ── Botón cerrar ──
         JPanel panelBoton = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton btnCerrar = new JButton("Cerrar");
         btnCerrar.addActionListener(e -> dispose());

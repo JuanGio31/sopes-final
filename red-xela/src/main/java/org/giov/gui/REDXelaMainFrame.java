@@ -1,6 +1,7 @@
 package org.giov.gui;
 
 import org.giov.Main;
+import org.giov.gui.controlador.DashboardController;
 import org.giov.gui.modelo_tabla.ModeloPedidosEspera;
 import org.giov.gui.modelo_tabla.ModeloPedidosProceso;
 import org.giov.gui.modelo_tabla.ModeloRecursos;
@@ -18,21 +19,12 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.JTableHeader;
 import java.awt.*;
-import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-/**
- * Ventana principal de la aplicación REDXela con diseño de dashboard
- * organizado en pestañas para separar la información por relevancia.
- *
- * <p>La pestaña principal (Dashboard) muestra los indicadores clave,
- * pedidos en espera y en proceso, recursos compartidos y actividad reciente.
- * La pestaña Almacén muestra el estado del inventario. Las acciones de
- * control se acceden desde el menú global (Archivo, Sistema, Ayuda).</p>
- */
+/** Ventana principal con dashboard de monitoreo en tiempo real. */
 public class REDXelaMainFrame extends JFrame {
 
     // ── Constantes de tipografía global ──
@@ -53,8 +45,8 @@ public class REDXelaMainFrame extends JFrame {
     private final ModeloPedidosEspera modeloPedidosEspera;
     private final ModeloPedidosProceso modeloPedidosProceso;
     private final Timer timerActualizacion;
+    private final DashboardController dashboardController;
 
-    // Referencias a componentes que se actualizan periódicamente
     private JLabel lblSimulando;
     private KPIPanel kpiEnEspera;
     private KPIPanel kpiEnProceso;
@@ -71,41 +63,28 @@ public class REDXelaMainFrame extends JFrame {
     private JList<String> listaExistencias;
     private JLabel lblEstrategiaActiva;
 
-    /** Historial de mensajes de actividad para detectar cambios. */
-    private int ultimoCompletados = 0;
-    private int ultimoEnProceso = 0;
-    private int ultimoEnEspera = 0;
-
-    /**
-     * Construye la ventana principal con diseño de pestañas y menú global.
-     */
     public REDXelaMainFrame() {
         super("REDXela - Centro de Distribución");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1300, 800);
         setLocationRelativeTo(null);
 
-        // Se inicializan los modelos de tabla
         modeloRecursos = new ModeloRecursos();
         modeloPedidosEspera = new ModeloPedidosEspera();
         modeloPedidosProceso = new ModeloPedidosProceso();
+        dashboardController = new DashboardController();
 
         setLayout(new BorderLayout(0, 0));
         setJMenuBar(crearMenuGlobal());
         add(crearBarraSuperior(), BorderLayout.NORTH);
         add(crearPestañas(), BorderLayout.CENTER);
 
-        // Se configura el temporizador de actualización cada 1 segundo
         timerActualizacion = new Timer(1000, e -> actualizarPaneles());
         timerActualizacion.start();
 
-        // Mensaje inicial de actividad
         agregarActividad("Sistema REDXela iniciado correctamente.");
     }
 
-    /**
-     * Crea la barra superior con el título y el indicador de estado.
-     */
     private JPanel crearBarraSuperior() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(new EmptyBorder(8, 16, 8, 16));
@@ -131,44 +110,29 @@ public class REDXelaMainFrame extends JFrame {
         return panel;
     }
 
-    /**
-     * Crea el panel de pestañas con las dos secciones principales:
-     * Dashboard (indicadores y monitoreo) y Almacén.
-     */
     private JTabbedPane crearPestañas() {
         JTabbedPane tabs = new JTabbedPane();
         tabs.setFont(FUENTE_TABLA_HEADER);
 
-        // Pestaña 1: Dashboard principal
         tabs.addTab("Dashboard", crearPanelDashboard());
-
-        // Pestaña 2: Almacén
         tabs.addTab("Almacén", crearPanelAlmacen());
 
         return tabs;
     }
 
-    /**
-     * Crea el panel del dashboard con KPIs, pedidos y recursos.
-     * Es la vista principal que muestra lo más importante del sistema.
-     */
     private JPanel crearPanelDashboard() {
         JPanel dashboard = new JPanel(new BorderLayout(12, 12));
         dashboard.setBorder(new EmptyBorder(12, 12, 12, 12));
 
-        // Panel de estadísticas rápidas (fila superior)
         dashboard.add(crearPanelEstadisticasRapidas(), BorderLayout.NORTH);
 
-        // Contenido principal dividido en dos columnas
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
         splitPane.setDividerLocation(420);
         splitPane.setDividerSize(4);
 
-        // Columna izquierda: Pedidos en espera + Pedidos en proceso
         JPanel colIzquierda = crearColumnaPedidos();
         splitPane.setLeftComponent(colIzquierda);
 
-        // Columna derecha: Recursos + Actividad
         JPanel colDerecha = crearColumnaDerecha();
         splitPane.setRightComponent(colDerecha);
 
@@ -177,10 +141,6 @@ public class REDXelaMainFrame extends JFrame {
         return dashboard;
     }
 
-    /**
-     * Crea la fila de estadísticas rápidas con los KPIs principales.
-     * Usa GridBagLayout para distribuir los KPIs de forma uniforme y responsiva.
-     */
     private JPanel crearPanelEstadisticasRapidas() {
         JPanel panel = new JPanel(new GridBagLayout());
         panel.setOpaque(false);
@@ -214,17 +174,10 @@ public class REDXelaMainFrame extends JFrame {
         return panel;
     }
 
-    /**
-     * Panel personalizado para mostrar un KPI con título, valor y color de acento.
-     * Mantiene un tamaño preferido fijo para evitar que crezca en cada actualización.
-     */
     private static class KPIPanel extends JPanel {
         private final JLabel lblValor;
         private final Color acento;
 
-        /**
-         * Construye un panel KPI con el título, valor inicial y color de acento.
-         */
         KPIPanel(String titulo, String valorInicial, Color acento) {
             this.acento = acento;
             setLayout(new BorderLayout());
@@ -254,7 +207,6 @@ public class REDXelaMainFrame extends JFrame {
             contenido.add(lblValor, c);
             add(contenido, BorderLayout.CENTER);
 
-            // Se agrega un borde de color como acento visual
             javax.swing.border.CompoundBorder borde = new javax.swing.border.CompoundBorder(
                     new javax.swing.border.LineBorder(acento, 3, false),
                     new EmptyBorder(10, 12, 10, 12)
@@ -262,23 +214,15 @@ public class REDXelaMainFrame extends JFrame {
             setBorder(borde);
         }
 
-        /**
-         * Actualiza solo el valor del KPI sin reconstruir el panel.
-         */
         void setValor(String valor) {
             lblValor.setText(valor);
         }
     }
 
-    /**
-     * Crea la columna de pedidos con las tablas de espera y proceso.
-     */
     private JPanel crearColumnaPedidos() {
-        // Pedidos en espera con indicador de estrategia activa
         JPanel panelEspera = new JPanel(new BorderLayout());
         panelEspera.setBorder(BorderFactory.createTitledBorder("PEDIDOS EN ESPERA"));
 
-        // Barra superior que muestra la estrategia de planificación activa
         JPanel barraEstrategia = new JPanel(new BorderLayout());
         barraEstrategia.setOpaque(false);
         lblEstrategiaActiva = new JLabel();
@@ -292,7 +236,6 @@ public class REDXelaMainFrame extends JFrame {
         JScrollPane scrollEspera = new JScrollPane(tablaEspera);
         panelEspera.add(scrollEspera, BorderLayout.CENTER);
 
-        // Pedidos en proceso
         JPanel panelProceso = new JPanel(new BorderLayout());
         panelProceso.setBorder(BorderFactory.createTitledBorder("PEDIDOS EN PROCESO"));
         tablaProceso = new JTable(modeloPedidosProceso);
@@ -300,7 +243,6 @@ public class REDXelaMainFrame extends JFrame {
         JScrollPane scrollProceso = new JScrollPane(tablaProceso);
         panelProceso.add(scrollProceso, BorderLayout.CENTER);
 
-        // Se divide verticalmente de forma responsiva
         JSplitPane split = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
         split.setResizeWeight(0.5);
         split.setDividerSize(4);
@@ -312,12 +254,7 @@ public class REDXelaMainFrame extends JFrame {
         return wrapper;
     }
 
-    /**
-     * Crea la columna derecha con recursos compartidos y actividad.
-     * Usa JSplitPane vertical para que ambos paneles se redimensionen de forma responsiva.
-     */
     private JPanel crearColumnaDerecha() {
-        // Recursos compartidos
         JPanel panelRecursos = new JPanel(new BorderLayout());
         panelRecursos.setBorder(BorderFactory.createTitledBorder("RECURSOS COMPARTIDOS"));
         tablaRecursos = new JTable(modeloRecursos);
@@ -325,7 +262,6 @@ public class REDXelaMainFrame extends JFrame {
         JScrollPane scrollRecursos = new JScrollPane(tablaRecursos);
         panelRecursos.add(scrollRecursos, BorderLayout.CENTER);
 
-        // Actividad en tiempo real
         JPanel panelActividad = new JPanel(new BorderLayout());
         panelActividad.setBorder(BorderFactory.createTitledBorder("ACTIVIDAD"));
         txtActividad = new JTextArea();
@@ -338,7 +274,6 @@ public class REDXelaMainFrame extends JFrame {
         scrollActividad.getViewport().setOpaque(false);
         panelActividad.add(scrollActividad, BorderLayout.CENTER);
 
-        // Se divide verticalmente de forma responsiva
         JSplitPane split = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
         split.setResizeWeight(0.4);
         split.setDividerSize(4);
@@ -350,9 +285,6 @@ public class REDXelaMainFrame extends JFrame {
         return wrapper;
     }
 
-    /**
-     * Configura una tabla con estilo moderno, fuente global y anchos de columna definidos.
-     */
     private void configurarTablaModerna(JTable tabla) {
         tabla.setAutoResizeMode(JTable.AUTO_RESIZE_SUBSEQUENT_COLUMNS);
         tabla.setRowHeight(28);
@@ -361,7 +293,6 @@ public class REDXelaMainFrame extends JFrame {
         header.setFont(FUENTE_TABLA_HEADER);
         header.setReorderingAllowed(false);
 
-        // Se definen los anchos de columna según el modelo de la tabla
         if (tabla.getModel() instanceof ModeloRecursos) {
             tabla.getColumnModel().getColumn(0).setPreferredWidth(150); // Tipo
             tabla.getColumnModel().getColumn(1).setPreferredWidth(60);  // Total
@@ -385,14 +316,10 @@ public class REDXelaMainFrame extends JFrame {
         }
     }
 
-    /**
-     * Crea el panel de la pestaña Almacén con capacidad, existencias y ubicaciones.
-     */
     private JPanel crearPanelAlmacen() {
         JPanel panel = new JPanel(new BorderLayout(12, 8));
         panel.setBorder(new EmptyBorder(12, 12, 12, 12));
 
-        // Sección de capacidad
         JPanel panelCapacidad = new JPanel(new BorderLayout(10, 0));
         panelCapacidad.setBorder(BorderFactory.createTitledBorder("Capacidad del almacén"));
         progressBarAlmacen = new JProgressBar(0, Almacen.getInstancia().getCapacidadMaxima());
@@ -402,7 +329,6 @@ public class REDXelaMainFrame extends JFrame {
         progressBarAlmacen.setPreferredSize(new Dimension(0, 30));
         panelCapacidad.add(progressBarAlmacen, BorderLayout.CENTER);
 
-        // Sección de existencias
         modeloExistencias = new DefaultListModel<>();
         listaExistencias = new JList<>(modeloExistencias);
         listaExistencias.setFont(FUENTE_TABLA);
@@ -411,7 +337,6 @@ public class REDXelaMainFrame extends JFrame {
         panelExistencias.setBorder(BorderFactory.createTitledBorder("Existencias por producto"));
         panelExistencias.add(scrollExistencias, BorderLayout.CENTER);
 
-        // Grid de ubicaciones físicas (10x10)
         gridUbicaciones = new JPanel(new GridLayout(10, 10, 2, 2));
         for (int i = 0; i < 100; i++) {
             JLabel celda = new JLabel();
@@ -424,7 +349,6 @@ public class REDXelaMainFrame extends JFrame {
         panelUbicaciones.setBorder(BorderFactory.createTitledBorder("Ubicaciones físicas (verde = libre, rojo = ocupado)"));
         panelUbicaciones.add(gridUbicaciones, BorderLayout.CENTER);
 
-        // Layout: capacidad arriba, existencias y ubicaciones abajo
         JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
         split.setLeftComponent(panelExistencias);
         split.setRightComponent(panelUbicaciones);
@@ -438,17 +362,11 @@ public class REDXelaMainFrame extends JFrame {
         return wrapper;
     }
 
-    // Referencia al JMenuItem del generador para actualizar su texto
     private JMenuItem btnMenuGenerador;
 
-    /**
-     * Crea el menú global con las opciones de Archivo, Sistema y Ayuda.
-     * Reemplaza la pestaña Controles para liberar espacio en el dashboard.
-     */
     private JMenuBar crearMenuGlobal() {
         JMenuBar menuBar = new JMenuBar();
 
-        // ── Menú Archivo ──
         JMenu menuArchivo = new JMenu("Archivo");
         JMenuItem btnNuevoPedido = new JMenuItem("Nuevo pedido");
         btnNuevoPedido.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK));
@@ -469,10 +387,8 @@ public class REDXelaMainFrame extends JFrame {
 
         menuBar.add(menuArchivo);
 
-        // ── Menú Sistema ──
         JMenu menuSistema = new JMenu("Sistema");
 
-        // Toggle generador
         btnMenuGenerador = new JMenuItem("⏸ Detener generador");
         btnMenuGenerador.addActionListener(e -> {
             GeneradorPedidos generador = Main.getGeneradorPedidos();
@@ -490,7 +406,6 @@ public class REDXelaMainFrame extends JFrame {
         });
         menuSistema.add(btnMenuGenerador);
 
-        // Submenú Estrategia con radio buttons
         JMenu menuEstrategia = new JMenu("Estrategia");
         ButtonGroup grupoEstrategia = new ButtonGroup();
 
@@ -519,7 +434,6 @@ public class REDXelaMainFrame extends JFrame {
 
         menuBar.add(menuSistema);
 
-        // ── Menú Ayuda ──
         JMenu menuAyuda = new JMenu("Ayuda");
         JMenuItem btnAyuda = new JMenuItem("Modo de uso");
         btnAyuda.addActionListener(e -> new AyudaDialog(this).setVisible(true));
@@ -534,9 +448,6 @@ public class REDXelaMainFrame extends JFrame {
         return menuBar;
     }
 
-    /**
-     * Cambia la estrategia de planificación y actualiza el radio button correspondiente.
-     */
     private void cambiarEstrategia(EstrategiaPlanificacion estrategia, String nombre) {
         SistemaPedidos sistema = Main.getSistemaPedidos();
         if (sistema != null) {
@@ -545,17 +456,12 @@ public class REDXelaMainFrame extends JFrame {
         }
     }
 
-    /**
-     * Agrega un mensaje con timestamp al panel de actividad.
-     * Se limita a 50 líneas para no saturar la vista.
-     */
     private void agregarActividad(String mensaje) {
         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm");
         String timestamp = sdf.format(new Date());
         SwingUtilities.invokeLater(() -> {
             if (txtActividad != null) {
                 txtActividad.append(timestamp + " " + mensaje + "\n");
-                // Se eliminan las líneas más antiguas si hay más de 50
                 while (txtActividad.getLineCount() > 50) {
                     int primeraLineaFin = txtActividad.getText().indexOf('\n');
                     if (primeraLineaFin >= 0) {
@@ -569,114 +475,48 @@ public class REDXelaMainFrame extends JFrame {
         });
     }
 
-    /**
-     * Actualiza todos los paneles leyendo el estado actual del sistema.
-     * Se ejecuta en el EDT gracias al Timer de Swing.
-     */
     private void actualizarPaneles() {
-        SistemaPedidos sistema = Main.getSistemaPedidos();
-        if (sistema == null || !sistema.isInicializado()) return;
+        DashboardController.EstadoDashboard estado = dashboardController.obtenerEstado();
+        if (estado.enEspera == 0 && estado.enProceso == 0 && estado.completados == 0
+                && Main.getSistemaPedidos() != null && !Main.getSistemaPedidos().isInicializado()) return;
 
-        // Se leen los contadores actuales
-        int enEspera = sistema.getColaEspera().size();
-        int enProceso = sistema.getPedidosProcesando().size();
-        int completados = sistema.getPedidosCompletados();
-
-        // Detección de nuevos pedidos en la cola
-        if (enEspera > ultimoEnEspera) {
-            agregarActividad(enEspera - ultimoEnEspera + " nuevo(s) pedido(s) en cola de espera.");
-        }
-        ultimoEnEspera = enEspera;
-
-        // Detección de pedidos completados
-        if (completados > ultimoCompletados) {
-            agregarActividad(completados - ultimoCompletados + " pedido(s) completado(s). Total: " + completados);
-        }
-        ultimoCompletados = completados;
-
-        // Detección de pedidos iniciados en proceso
-        if (enProceso > ultimoEnProceso) {
-            agregarActividad(enProceso - ultimoEnProceso + " pedido(s) iniciado(s) en proceso.");
-        }
-        ultimoEnProceso = enProceso;
-
-        // Detección de conflictos de recursos (pedidos bloqueados)
-        int bloqueados = sistema.getPedidosBloqueados().size();
-        if (bloqueados > 0) {
-            agregarActividad("⚠ " + bloqueados + " pedido(s) bloqueado(s) por falta de stock.");
+        String[] cambios = dashboardController.detectarCambios(estado);
+        for (String msg : cambios) {
+            agregarActividad(msg);
         }
 
-        // Se actualizan los KPIs visuales
-        kpiEnEspera.setValor(String.valueOf(enEspera));
-        kpiEnProceso.setValor(String.valueOf(enProceso));
-        kpiCompletados.setValor(String.valueOf(completados));
+        kpiEnEspera.setValor(String.valueOf(estado.enEspera));
+        kpiEnProceso.setValor(String.valueOf(estado.enProceso));
+        kpiCompletados.setValor(String.valueOf(estado.completados));
+        kpiRecursosOcupacion.setValor(String.format("%.0f%%", estado.ocupacionRecursos));
 
-        // Ocupación de recursos
-        GestorRecursos gestor = GestorRecursos.getInstancia();
-        int totalRecursos = 0;
-        int recursosEnUso = 0;
-        for (TipoRecurso tr : TipoRecurso.values()) {
-            totalRecursos += gestor.getRecursosTotales(tr);
-            recursosEnUso += gestor.getUsuariosActivos(tr).size();
-        }
-        double ocupacion = totalRecursos > 0 ? (recursosEnUso * 100.0 / totalRecursos) : 0;
-        kpiRecursosOcupacion.setValor(String.format("%.0f%%", ocupacion));
-
-        // Tiempo promedio por pedido completado
-        if (completados > 0) {
-            double tiempoProm = (System.currentTimeMillis() - obtenerTiempoInicioEstimado()) / completados / 1000.0;
-            kpiTiempoProm.setValor(String.format("%.1f s", tiempoProm));
+        if (estado.completados > 0) {
+            kpiTiempoProm.setValor(String.format("%.1f s", estado.tiempoPromedio));
         }
 
-        // Se actualiza la etiqueta de estrategia activa
-        EstrategiaPlanificacion estrategia = sistema.getEstrategiaActual();
-        if (estrategia != null && lblEstrategiaActiva != null) {
-            String nombreEstrategia = estrategia.getClass().getSimpleName()
-                    .replace("Estrategia", "")
-                    .replace("PrioridadEstricta", "Prioridad estricta")
-                    .replace("TiempoEspera", "Tiempo de espera")
-                    .replace("MenorCantidad", "Menor cantidad");
-            lblEstrategiaActiva.setText("Orden: " + nombreEstrategia);
+        if (!estado.nombreEstrategia.isEmpty() && lblEstrategiaActiva != null) {
+            lblEstrategiaActiva.setText("Orden: " + estado.nombreEstrategia);
         }
 
-        // Se actualizan las tablas
         modeloRecursos.fireTableDataChanged();
         modeloPedidosEspera.fireTableDataChanged();
         modeloPedidosProceso.fireTableDataChanged();
 
-        // Se actualiza el almacén
         actualizarAlmacen();
     }
 
-    /**
-     * Estimación del tiempo de inicio del sistema para calcular promedios.
-     */
-    private long obtenerTiempoInicioEstimado() {
-        SistemaPedidos sistema = Main.getSistemaPedidos();
-        if (sistema != null && !sistema.getPedidosProcesando().isEmpty()) {
-            return sistema.getPedidosProcesando().get(0).getTiempoLlegada();
-        }
-        return System.currentTimeMillis() - 60000;
-    }
 
-
-    /**
-     * Actualiza el panel del almacén con los datos actuales.
-     */
     private void actualizarAlmacen() {
         Almacen almacen = Almacen.getInstancia();
 
-        // Barra de progreso
         int ocupado = almacen.getEspacioOcupado();
         int maximo = almacen.getCapacidadMaxima();
         progressBarAlmacen.setValue(ocupado);
         progressBarAlmacen.setString(ocupado + " / " + maximo);
 
-        // Existencias por producto (se muestran con nombre legible)
         modeloExistencias.clear();
         almacen.getExistenciasPorProducto().forEach((codigo, cantidad) -> {
             if (cantidad > 0) {
-                // Se busca el nombre del producto en el catálogo
                 org.giov.modelo.Producto producto = org.giov.modelo.ConfiguracionMercancias.buscarProducto(codigo);
                 String nombre = (producto != null) ? producto.nombre() : codigo;
                 modeloExistencias.addElement(nombre + " (" + codigo + "): " + cantidad);
@@ -686,7 +526,6 @@ public class REDXelaMainFrame extends JFrame {
             modeloExistencias.addElement("Sin existencias");
         }
 
-        // Grid de ubicaciones
         for (int i = 0; i < gridUbicaciones.getComponentCount(); i++) {
             Component celda = gridUbicaciones.getComponent(i);
             if (almacen.getEstadoUbicacion(i)) {

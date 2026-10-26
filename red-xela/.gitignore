@@ -39,3 +39,9 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+### Documentation (docs/) ###
+docs/*.html
+docs/*.css
+docs/portada-*.html
+docs/generar-pdf.sh

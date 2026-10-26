@@ -1,5 +1,6 @@
 package org.giov.gui;
 
+import org.giov.gui.controlador.MercaderiaController;
 import org.giov.modelo.Almacen;
 import org.giov.modelo.ConfiguracionMercancias;
 import org.giov.modelo.Producto;
@@ -8,34 +9,23 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.Map;
 
-/**
- * Diálogo para registrar la llegada de mercadería al almacén.
- * Permite seleccionar un producto del catálogo y especificar la cantidad.
- */
+/** Diálogo para registrar la llegada de mercadería al almacén. */
 public class MercaderiaDialog extends JDialog {
 
     private final JComboBox<String> comboProducto;
     private final JSpinner spinnerCantidad;
 
-    /**
-     * Construye el diálogo de registro de mercadería.
-     *
-     * @param parent ventana padre
-     */
     public MercaderiaDialog(JFrame parent) {
         super(parent, "Registrar Mercadería", true);
         setSize(400, 250);
         setLocationRelativeTo(parent);
 
-        // Se configura el panel principal
         JPanel panel = new JPanel(new BorderLayout(10, 10));
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // Campos del formulario
         JPanel panelFormulario = new JPanel(new GridLayout(2, 2, 10, 10));
         panelFormulario.add(new JLabel("Producto:"));
 
-        // Se pobla el combo mostrando "Nombre (Código)" para que el usuario identifique cada producto
         String[] productos = new String[ConfiguracionMercancias.getCatalogo().size()];
         int idx = 0;
         for (Map.Entry<String, Producto> entry : ConfiguracionMercancias.getCatalogo().entrySet()) {
@@ -62,21 +52,16 @@ public class MercaderiaDialog extends JDialog {
 
         add(panel);
 
-        // Acción del botón registrar
         btnRegistrar.addActionListener(e -> {
             String seleccion = (String) comboProducto.getSelectedItem();
             int cantidad = (int) spinnerCantidad.getValue();
 
-            // Se extrae el código del formato "Nombre (CODIGO)"
-            int parentesisInicio = seleccion.lastIndexOf('(');
-            int parentesisFin = seleccion.lastIndexOf(')');
-            String codigo = (parentesisInicio >= 0 && parentesisFin > parentesisInicio)
-                    ? seleccion.substring(parentesisInicio + 1, parentesisFin)
-                    : seleccion;
+            String codigo = MercaderiaController.extraerCodigo(seleccion);
+            MercaderiaController controller = new MercaderiaController();
+            MercaderiaController.Resultado resultado = controller.registrar(codigo, cantidad);
 
-            boolean exito = Almacen.getInstancia().registrarLlegadaMercaderia(codigo, cantidad);
-            if (exito) {
-                // Se muestra el nombre sin el código en el mensaje
+            if (resultado.exito) {
+                int parentesisInicio = seleccion.lastIndexOf('(');
                 String nombre = seleccion.substring(0, parentesisInicio).trim();
                 JOptionPane.showMessageDialog(this,
                         "Se registraron " + cantidad + " unidades de " + nombre + ".",
@@ -84,12 +69,11 @@ public class MercaderiaDialog extends JDialog {
                 dispose();
             } else {
                 JOptionPane.showMessageDialog(this,
-                        "No hay espacio suficiente en el almacén.",
+                        resultado.mensaje,
                         "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
 
-        // Acción del botón cancelar
         btnCancelar.addActionListener(e -> dispose());
     }
 }

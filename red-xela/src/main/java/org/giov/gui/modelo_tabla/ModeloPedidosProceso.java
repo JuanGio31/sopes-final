@@ -7,19 +7,13 @@ import org.giov.modelo.Pedido;
 import javax.swing.table.AbstractTableModel;
 import java.util.List;
 
-/**
- * Modelo de tabla que muestra los pedidos actualmente siendo procesados por los workers.
- * Lee del {@link SistemaPedidos} la lista de pedidos en proceso.
- */
+/** Modelo de tabla para pedidos en proceso. */
 public class ModeloPedidosProceso extends AbstractTableModel {
 
     private static final String[] COLUMNAS = {
             "ID", "Cliente", "Prioridad", "Artículos", "Estado", "Tiempo transcurrido (s)"
     };
 
-    /**
-     * Devuelve el nombre de la columna indicada.
-     */
     @Override
     public String getColumnName(int column) {
         return COLUMNAS[column];

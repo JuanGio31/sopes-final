@@ -52,7 +52,7 @@ public class WorkerProcesamiento extends Thread {
             Pedido pedidoActual = sistema.obtenerSiguientePedido();
 
             if (pedidoActual != null) {
-                // 1. Verificar si hay stock suficiente antes de intentar procesar
+                // Verificar stock antes de procesar
                 if (almacen.hayStockParaPedido(pedidoActual.getProductosSolicitados())) {
 
                     try {
@@ -60,24 +60,24 @@ public class WorkerProcesamiento extends Thread {
                         sistema.registrarEnProceso(pedidoActual);
                         System.out.println("Worker " + idWorker + ": Iniciando " + pedidoActual.getIdPedido());
 
-                        // 2. Se determinan los recursos necesarios según el tipo de mercancía de cada producto
+                        // Recursos necesarios según tipo de mercancía
                         List<TipoRecurso> recursosNecesarios = obtenerRecursosNecesarios(pedidoActual.getProductosSolicitados());
 
-                        // 3. Solicitud de todos los recursos necesarios en orden
+                        // Solicitud de recursos en orden
                         for (TipoRecurso recurso : recursosNecesarios) {
                             gestor.solicitarRecurso(recurso, pedidoActual.getIdPedido());
                         }
 
-                        // 4. Simulación del trabajo basado en la cantidad de unidades
+                        // Simulación del trabajo
                         int tiempoProcesamiento = pedidoActual.getCantidadTotalArticulos() * 100;
                         if (tiempoProcesamiento == 0) tiempoProcesamiento = 1500;
 
                         Thread.sleep(tiempoProcesamiento);
 
-                        // 5. Descontar el stock real del almacén ahora que se empacó
+                        // Descontar stock del almacén
                         almacen.descontarStock(pedidoActual.getProductosSolicitados());
 
-                        // 6. Liberación de todos los recursos en orden inverso
+                        // Liberación de recursos en orden inverso
                         for (int i = recursosNecesarios.size() - 1; i >= 0; i--) {
                             gestor.liberarRecurso(recursosNecesarios.get(i), pedidoActual.getIdPedido());
                         }

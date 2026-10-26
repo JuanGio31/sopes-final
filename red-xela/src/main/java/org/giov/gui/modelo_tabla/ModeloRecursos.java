@@ -5,10 +5,7 @@ import org.giov.recursos.TipoRecurso;
 
 import javax.swing.table.AbstractTableModel;
 
-/**
- * Modelo de tabla que muestra el estado de los recursos compartidos.
- * Lee directamente del {@link GestorRecursos} para reflejar el estado actual.
- */
+/** Modelo de tabla para el estado de recursos compartidos. */
 public class ModeloRecursos extends AbstractTableModel {
 
     private static final String[] COLUMNAS = {
@@ -17,9 +14,6 @@ public class ModeloRecursos extends AbstractTableModel {
 
     private final GestorRecursos gestor;
 
-    /**
-     * Construye el modelo de recursos vinculado al gestor singleton.
-     */
     public ModeloRecursos() {
         this.gestor = GestorRecursos.getInstancia();
     }

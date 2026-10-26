@@ -37,17 +37,17 @@ public class Main {
     public static void main(String[] args) {
         System.out.println("--- Iniciando Sistema REDXela ---");
 
-        // 0. Se inicializa la configuración de mercancías y se imprime el catálogo
+        // Inicialización de mercancías y catálogo
         ConfiguracionMercancias.imprimirConfiguracion();
 
         // Se carga el stock inicial en el almacén para que los pedidos automáticos no queden bloqueados
         ConfiguracionMercancias.cargarStockInicial();
 
-        // 1. Se inicia la comunicación asíncrona entre Inventario y Recepción
+        // Comunicación asíncrona entre Inventario y Recepción
         BlockingQueue<MensajeRecepcion> canal = new LinkedBlockingQueue<>();
         generadorPedidos = getGenerador(canal);
 
-        // 2. Se inicia el generador automático de pedidos
+        // Generador automático de pedidos
         generadorPedidos.start();
 
         // Se marca el sistema como inicializado para que la GUI pueda acceder a los datos

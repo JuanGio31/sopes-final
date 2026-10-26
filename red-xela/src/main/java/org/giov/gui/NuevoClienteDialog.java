@@ -6,22 +6,12 @@ import org.giov.modelo.Pedido;
 import javax.swing.*;
 import java.awt.*;
 
-/**
- * Diálogo modal para registrar un nuevo cliente en el sistema.
- *
- * <p>Permite ingresar el nombre del cliente y seleccionar el nivel de servicio
- * que desea contratar. Al confirmar, se registra en el GestorClientes.</p>
- */
+/** Diálogo modal para registrar un nuevo cliente. */
 public class NuevoClienteDialog extends JDialog {
 
     private final JTextField txtNombre;
     private final JComboBox<String> comboNivel;
 
-    /**
-     * Construye el diálogo con un formulario simple: nombre y nivel de servicio.
-     *
-     * @param parent ventana padre
-     */
     public NuevoClienteDialog(Component parent) {
         super(
                 parent instanceof JFrame ? (JFrame) parent :
@@ -32,11 +22,9 @@ public class NuevoClienteDialog extends JDialog {
         setSize(420, 220);
         setLocationRelativeTo(parent);
 
-        // Se configura el panel principal
         JPanel panel = new JPanel(new BorderLayout(10, 10));
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // ── Campos del formulario ──
         JPanel panelForm = new JPanel(new GridLayout(2, 2, 10, 10));
 
         txtNombre = new JTextField();
@@ -50,7 +38,6 @@ public class NuevoClienteDialog extends JDialog {
 
         panel.add(panelForm, BorderLayout.CENTER);
 
-        // ── Botones ──
         JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton btnRegistrar = new JButton("Registrar");
         JButton btnCancelar = new JButton("Cancelar");
@@ -60,7 +47,6 @@ public class NuevoClienteDialog extends JDialog {
 
         add(panel);
 
-        // Acción del botón registrar
         btnRegistrar.addActionListener(e -> {
             String nombre = txtNombre.getText().trim();
             if (nombre.isEmpty()) {
@@ -68,7 +54,7 @@ public class NuevoClienteDialog extends JDialog {
                 return;
             }
 
-            int nivel = comboNivel.getSelectedIndex() + 1; // 1-5
+            int nivel = comboNivel.getSelectedIndex() + 1;
             GestorClientes.getInstancia().registrarCliente(nombre, nivel);
 
             JOptionPane.showMessageDialog(this,
@@ -77,7 +63,6 @@ public class NuevoClienteDialog extends JDialog {
             dispose();
         });
 
-        // Acción del botón cancelar
         btnCancelar.addActionListener(e -> dispose());
     }
 }

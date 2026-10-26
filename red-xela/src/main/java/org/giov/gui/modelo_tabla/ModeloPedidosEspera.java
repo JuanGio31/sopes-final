@@ -7,19 +7,13 @@ import org.giov.modelo.Pedido;
 import javax.swing.table.AbstractTableModel;
 import java.util.List;
 
-/**
- * Modelo de tabla que muestra los pedidos en la cola de espera.
- * Lee del {@link SistemaPedidos} la cola actual de pedidos pendientes.
- */
+/** Modelo de tabla para pedidos en la cola de espera. */
 public class ModeloPedidosEspera extends AbstractTableModel {
 
     private static final String[] COLUMNAS = {
             "ID", "Cliente", "Prioridad", "Artículos", "Estado", "Tiempo espera (s)"
     };
 
-    /**
-     * Devuelve el nombre de la columna indicada.
-     */
     @Override
     public String getColumnName(int column) {
         return COLUMNAS[column];
